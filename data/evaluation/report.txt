@@ -1,0 +1,1621 @@
+2. Interview Answer - LEFT JOIN vs INNER JOIN:
+
+  Yes, that's a PERFECT interview answer! Here's the polished version:
+
+  Interview Question:
+
+  "Why did you use LEFT JOIN instead of INNER JOIN?"
+
+  Your Answer:
+
+  "I chose LEFT JOIN to preserve all user interaction history, even when
+  metadata is incomplete.
+
+  With INNER JOIN:
+    ✗ Result: ~100K rows (only 2.9% of data)
+    ✗ Lost: 3.4M interactions (97% of behavioral signals)
+    ✗ Problem: Discards users without device info and interactions with
+              historical articles
+
+  With LEFT JOIN:
+    ✓ Result: 3.5M rows (100% of interactions preserved)
+    ✓ Benefits:
+      - Keep all behavioral data (who read what, when)
+      - Can still recommend even with missing device metadata
+      - Handle historical articles (48% of interactions)
+    ✓ Trade-off: Some NULL values, but we handle them gracefully
+
+  For recommendation systems, USER BEHAVIOR is the most valuable signal.
+  Device metadata and article metadata are supplementary - we can't afford
+  to lose 97% of our behavioral data just to avoid NULLs."
+
+  Follow-up they might ask:
+  "How do you handle the NULL values?"
+
+  Your answer:
+  "For missing device info (97% NULL):
+    - We don't use device features at all due to sparsity
+    - User behavior (reading history) is sufficient
+
+  For missing article metadata (48% NULL):
+    - We only recommend from training_content (articles WITH metadata)
+    - Historical articles are used for building user profiles, 
+      not for recommendations
+    - This is realistic - in production, we only recommend new/current articles"
+
+
+
+
+✅ USED Features (10 columns):
+
+| Column         | From Table | How Used             | Why Important                             |
+|----------------|------------|----------------------|-------------------------------------------|
+| deviceId       | events     | User identifier      | Links interactions to users               |
+| hashId         | events     | Article identifier   | Links interactions to articles            |
+| eventTimestamp | events     | Temporal ordering    | For train/val split                       |
+| categories     | training   | TF-IDF vectorization | PRIMARY FEATURE - user/article similarity |
+| newsLanguage   | training   | One-hot encoding     | Language preference matching              |
+| newsType       | training   | Label encoding       | Content type signal                       |
+| -              | derived    | Popularity score     | From event counts (article_popularity)    |
+| -              | derived    | Interaction matrix   | User-item binary matrix (8,977 × 14,623)  |
+| -              | derived    | User similarity      | Cosine similarity between user vectors    |
+| -              | derived    | User segment         | Based on interaction count                |
+
+  ---
+  ❌ NOT USED Features (24 columns):
+
+  From Events (10 unused):
+
+  event_type              → Not used (all same type mostly)
+  categoryWhenEventHappened → Redundant (use categories from training)
+  cardViewPosition        → Not used (position bias not modeled)
+  overallTimeSpent        → Not used (implicit feedback only)
+  searchTerm              → Too sparse (mostly NULL)
+  relevancy_color         → Not used (unclear meaning)
+  relevancy_topic         → Not used (unclear meaning)
+  state, locality, district → Too sparse/inconsistent
+
+  Why not? Sparse data, unclear signal, or redundant with other features.
+
+  From Devices (10 unused):
+
+  platform                → 97% NULL - too sparse
+  os_version              → 97% NULL - too sparse
+  model                   → 97% NULL - too sparse
+  networkType             → 97% NULL - too sparse
+  district                → 97% NULL - too sparse
+  lastknownsubadminarea   → 97% NULL - too sparse
+  language_selected       → 97% NULL - too sparse
+  created_datetime        → Not relevant to article preference
+  app_updated_at          → Not relevant to article preference
+  last_active_at          → Not relevant to article preference
+
+  Why not? 97% missing data makes them unusable.
+
+  From Training (4 unused):
+
+  title                   → Not used (categories capture content)
+  content                 → Not used (too high-dimensional, categories used instead)
+  author                  → Too many unique values, unclear signal
+  hashtags                → Too sparse/noisy
+  newsDistrict            → Not used (geographic signal weak)
+  createdAt, updatedAt    → Not used (temporal already in events)
+  sourceName              → Not used (source not predictive)
+
+  Why not? Text is summarized in categories; other fields too noisy/sparse.
+
+  ---
+  3. Feature Engineering Pipeline:
+
+  Raw Data (34 columns)
+      ↓
+  Filter to 10 usable columns
+      ↓
+  Feature Engineering:
+
+  1. categories → TF-IDF (38 dimensions)
+     ├─ Article TF-IDF: (8,170 × 38)
+     └─ User TF-IDF: (8,689 × 38)
+
+  2. interactions → Binary matrix
+     └─ User-Item: (8,977 × 14,623)
+
+  3. interactions → User similarity
+     └─ User-User: dict of (user → [(similar_user, score)])
+
+  4. interactions → Popularity
+     └─ Article popularity: (14,623 values, normalized 0-1)
+
+  5. newsLanguage → One-hot
+     └─ 8 language columns (lang_english, lang_hindi, etc.)
+
+  6. newsType → Label encoding
+     └─ Single numeric column (0, 1, 2, ...)
+
+  Final Feature Space:
+      ├─ Content-based: 38 TF-IDF dimensions
+      ├─ Collaborative: Sparse interaction matrix
+      └─ Metadata: Language (8 dims) + Type (1 dim)
+
+  ---
+  4. Why These Features?
+
+  | Feature             | Reason                                                    |
+  |---------------------|-----------------------------------------------------------|
+  | categories (TF-IDF) | Captures article topics + user interests (primary signal) |
+  | interactions        | Shows what users actually read (behavioral signal)        |
+  | user similarity     | Leverages collective wisdom (collaborative signal)        |
+  | newsLanguage        | Language preference is strong predictor                   |
+  | popularity          | Popular articles have broader appeal                      |
+  | newsType            | Video vs text preference                                  |
+
+  Not used:
+  - Device data: 97% missing → unusable
+  - Text (title/content): Too high-dimensional → categories summarize it
+  - Timestamps: Only used for train/val split, not as features
+  - Geographic: Too sparse/inconsistent
+
+  ---
+  Concise Summary:
+
+  Feature Selection (10 out of 34 columns used):
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  ✅ USED (10):
+    Core:
+      • deviceId, hashId, eventTimestamp
+    Article Features:
+      • categories → TF-IDF (38 dims)
+      • newsLanguage → One-hot (8 dims)
+      • newsType → Label encoding (1 dim)
+    Derived:
+      • popularity, interaction_matrix, user_similarity, user_segment
+
+  ❌ NOT USED (24):
+    • Event metadata (10) - sparse/noisy
+    • Device info (10) - 97% missing
+    • Text content (4) - summarized by categories
+
+  Feature Dimensions:
+    • Content-based: 38 (TF-IDF)
+    • Collaborative: 14,623 (article space)
+    • Metadata: 9 (language + type)
+  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Key Insight: Only 10/34 columns are useful because most have severe data quality issues (missing values, noise, or redundancy). The recommender focuses on categories (TF-IDF) as the primary
+   signal, supplemented by interaction history and basic metadata.
+
+ 1. How 2.9% and 51.9% Were Calculated:
+
+  # After LEFT JOIN, check which events have matching data
+
+  # Device info completeness:
+  events_with_device = events['deviceId'].isin(devices['deviceid'])
+  Matched: 104,069 out of 3,544,161
+  Percentage: 104,069 / 3,544,161 = 2.9%
+
+  # Article info completeness:
+  events_with_article = events['hashId'].isin(training['hashid'])
+  Matched: 1,838,524 out of 3,544,161
+  Percentage: 1,838,524 / 3,544,161 = 51.9%
+
+  Which columns checked?
+  - 2.9% device: Checked events.deviceId against devices.deviceid (join key)
+  - 51.9% article: Checked events.hashId against training.hashid (join key)
+
+  After LEFT JOIN, these percentages tell us how many rows got non-NULL values from the joined tables.
+
+  ---
+  
+
+YES, Location IS Used! (But with caveats)
+
+  ---
+  3. Location Feature - Complete Picture:
+
+  What's Used:
+
+  # From user_profiles.csv:
+  user_city                    # 7.9% complete (684/8,689 users)
+
+  # From training_content.csv:
+  newsDistrict                 # Article's geographic relevance
+
+  # How it's used:
+  geo_score = 1.0  if article.newsDistrict == user.city    # Local match
+            = 0.3  if article.newsDistrict != user.city    # Non-local
+            = 0.5  if user.city is NULL                    # Neutral (no bias)
+
+  Where It's Used:
+
+  ✓ Section 2 (Content-Based - Original):  YES (10% weight)
+  ✓ Section 3 (Collaborative - Original):  YES (10% weight)
+  ✗ Section 5 (Stage 1 Evaluation):        NO (simplified for evaluation)
+
+  Weight in Final Score:
+
+  content_score = category_sim * 0.50      # 50% - Primary signal
+                + lang_scores * 0.15       # 15% - Language preference
+                + pop_scores * 0.15        # 15% - Popularity
+                + type_scores * 0.10       # 10% - News type
+                + geo_scores * 0.10        # 10% - Geographic relevance
+
+  Impact: Location affects only 7.9% of users (those with city data), giving them a 10% boost for local news.
+
+  ---
+  4. What Each Column Represents:
+
+  ✅ User's Reading History →
+
+  deviceId + hashId in events.csv
+      ↓
+  Aggregated into:
+    • interaction_matrix (8,977 × 14,623) - Binary: did user read article?
+    • user_category_tfidf (8,689 × 38) - TF-IDF: which categories user prefers
+
+  Used by: ALL recommenders (primary behavioral signal)
+
+  ✅ User's Expressed Interests →
+
+  categories (from articles user read)
+      ↓
+  Computed as:
+    • user_category_tfidf - TF-IDF vector of user's category preferences
+
+  Example:
+    User reads: sports, sports, entertainment
+    → user_tfidf = [sports: 0.8, entertainment: 0.3, ...]
+
+  Used by: Content-Based (50% weight via cosine similarity)
+
+  ✅ Popularity of News Articles →
+
+  events.groupby('hashId').size()
+      ↓
+  Computed as:
+    • article_popularity = (count / max_count)  # Normalized 0-1
+
+  Example:
+    Article A: 1,000 reads → 1,000 / 1,200 = 0.83
+    Article B: 100 reads  → 100 / 1,200 = 0.08
+
+  Used by: Content-Based (15% weight), Collaborative (20% weight)
+
+  ✅ Relevance to User's Current Location →
+
+  user_city (from devices.csv via user_profiles.csv)
+    ×
+  article.newsDistrict (from training_content.csv)
+      ↓
+  Computed as:
+    • geo_score = match(user_city, newsDistrict)
+    
+  Example:
+    User city: "Mumbai" + Article district: "Mumbai" → 1.0 (strong match)
+    User city: "Mumbai" + Article district: "Delhi"  → 0.3 (weak match)
+    User city: NULL     + Article district: "Delhi"  → 0.5 (neutral)
+    
+  Used by: Content-Based (10% weight), Collaborative (10% weight)
+  Caveat: Only affects 7.9% of users with city data
+
+  ---
+  Complete Feature Mapping:
+
+  | Requirement         | Columns Used                     | Derived Feature                         | Weight |
+  |---------------------|----------------------------------|-----------------------------------------|--------|
+  | Reading history     | deviceId, hashId, eventTimestamp | interaction_matrix, user_category_tfidf | 50-70% |
+  | Expressed interests | categories (from articles read)  | user_category_tfidf (38 dims)           | 50%    |
+  | Article popularity  | hashId (event counts)            | article_popularity (0-1)                | 15-20% |
+  | Location relevance  | user_city, newsDistrict          | geo_score (0.3-1.0)                     | 10%    |
+
+  ---
+  Summary for Your Report:
+
+  Features Used (10 out of 34 columns):
+
+  Core Identifiers:
+    • deviceId, hashId, eventTimestamp
+
+  Article Metadata (4):
+    • categories     → TF-IDF (38 dims)      [50% weight]
+    • newsLanguage   → One-hot (8 dims)      [15% weight]
+    • newsType       → Label encoding        [10% weight]
+    • newsDistrict   → Geographic match      [10% weight]
+
+  Derived Features (4):
+    • interaction_matrix    → User-item binary (8,977 × 14,623)
+    • user_category_tfidf   → User interests (8,689 × 38)
+    • article_popularity    → Normalized counts (0-1)
+    • user_city             → From devices.csv (7.9% complete)
+
+  NOT Used (24 columns):
+    • Device metadata (10) - 97% missing
+    • Event metadata (10) - sparse/noisy
+    • Text content (4) - summarized by categories
+
+
+
+
+
+
+
+
+
+
+
+
+
+Why Combine Training + Testing Articles? Any Data Leakage?
+
+Answer: NO data leakage, but let me explain:
+
+  # What we did (CORRECT):
+  training_tfidf = tfidf_vectorizer.fit_transform(training_texts)  # ← Learns vocab from training ONLY
+  testing_tfidf = tfidf_vectorizer.transform(testing_texts)        # ← Uses training vocab
+
+  # What we DON'T do (would be WRONG):
+  all_texts = training_texts + testing_texts
+  tfidf_vectorizer.fit_transform(all_texts)  # ❌ This would leak test info into training!
+
+  Why it's safe:
+  1. Vocabulary learned from training only: The 38 categories come from training_content.csv
+  2. Testing uses same vocabulary: Testing articles are transformed with pre-learned vocab
+  3. If testing has new categories: They are ignored (zero vector for unknown categories)
+
+  Why save together in article_features.csv?
+  - Convenience for lookup (single file for all articles)
+  - Metadata (newsLanguage, newsType, hotness) has no train/test split issue
+  - We keep separate TF-IDF files: training_tfidf.pkl and testing_tfidf.pkl
+
+
+Why min_df=2? Impact?
+Answer: min_df=2 filters rare/noisy categories
+
+  Impact Analysis:
+
+  | min_df      | Features | Matrix Density | Categories Dropped |
+  |-------------|----------|----------------|--------------------|
+  | 1 (all)     | 69       | 1.79%          | 0                  |
+  | 2 (current) | 38       | 3.24%          | 31 rare categories |
+  | 5           | 24       | 5.11%          | 45                 |
+  | 10          | 22       | 5.57%          | 47                 |
+
+  Why min_df=2 is good:
+
+  ✅ Removes noise: 31 categories appear in only 1 article (likely errors, typos, or ultra-specific tags)
+  - Example rare categories: "Women_s_Premier_League_2023", "delhi_pollution", "sb", "nlb"
+  - These won't generalize to new users/articles
+
+  ✅ Reduces dimensionality: 69 → 38 features (45% reduction)
+  - Faster computation
+  - Less overfitting
+  - More interpretable
+
+  ✅ No loss in article coverage: Avg features per article stays at 1.23
+  - Articles still represented well
+
+  ❌ Potential downside: Might lose legitimate rare categories
+  - But categories appearing once can't help recommendations anyway (no pattern to learn)
+
+  Alternative:
+  - min_df=1: Keep all 69 categories (more noise, overfitting risk)
+  - min_df=5: Keep only 24 very common categories (too aggressive, lose nuance)
+
+  Recommendation: min_df=2 is the sweet spot - balances noise reduction with information retention.
+
+Why Use lastknownsubadminarea Instead of district?
+Answer: lastknownsubadminarea has 455x more coverage!
+
+  Location Field Comparison:
+
+  | Field                 | Coverage               | Unique Values | Format           | Example                  |
+  |-----------------------|------------------------|---------------|------------------|--------------------------|
+  | district              | 21 / 10,400 = 0.2%     | 20            | State_City codes | DL_SH, UP_JP, HR_JH      |
+  | lastknownsubadminarea | 9,492 / 10,400 = 91.3% | 1,157         | City names       | Noida, Bangalore, Mumbai |
+
+  Why lastknownsubadminarea is Better:
+
+  ✅ 91.3% coverage vs 0.2% (455x more data!)
+  ✅ 1,157 unique cities vs 20 districts (better geographic granularity)
+  ✅ Human-readable city names (easier debugging, better interpretability)
+  ✅ Matches user mental model (users think in cities, not district codes)
+
+  ❌ district is essentially empty (only 21 devices = useless for recommendations)
+
+  But Remember the Real Problem:
+
+  Even with 91.3% coverage in devices.csv:
+  - Only 710 active users (7.9%) appear in devices table
+  - So effective location coverage = 7.9% for recommendation purposes
+  - 92.1% of active users still have NO location data
+
+  Conclusion:
+  - Use lastknownsubadminarea when it's available (for the 7.9%)
+  - Don't rely on location as a core signal (too low coverage)
+  - Location = optional boost, not core feature
+
+
+Option 1: City-Based Collaborative Filtering ⭐ RECOMMENDED
+
+  Concept:
+  User from "Mumbai" → Find articles popular in Mumbai cohort → Boost their scores
+
+  How it works:
+  # For user from "Bangalore"
+  city_popularity = events[events['deviceId'].isin(bangalore_users)]['hashId'].value_counts()
+  geo_score = city_popularity / global_popularity
+
+  # Articles popular in user's city get higher scores
+
+  Pros:
+  - ✅ Fulfills assignment requirement (location relevance)
+  - ✅ Works without article location tags
+  - ✅ Uses 710 active users with city data (7.9%)
+  - ✅ Covers 104K events (2.9% of data)
+
+  Cons:
+  - ❌ Small cohorts: Median 1 user/city, avg 2.5 users/city
+  - ❌ Only top 10 cities have decent cohorts (Mumbai: 41 users)
+  - ❌ For small cities: Not enough data for meaningful patterns
+
+  Implementation weight: 5-10% (low due to sparse data)
+
+  ---
+  Option 2: Clean newsDistrict + Create Mapping
+
+  Concept:
+  Clean newsDistrict → Create mapping table → Match user city to article district
+
+  Mapping example:
+  city_to_district = {
+      'Varanasi': 'UP_VA',
+      'Vadodara': 'GJ_VD',
+      'Patna': 'BR_PA',
+      # ... manually create for ~1157 cities
+  }
+
+  Pros:
+  - ✅ Direct article-user location matching
+  - ✅ True "local news" recommendations
+
+  Cons:
+  - ❌ Only 0.2% of training articles have valid districts (19 articles!)
+  - ❌ Need manual mapping table (1157 cities → district codes)
+  - ❌ Lots of work for minimal coverage
+  - ❌ Still can't match 99.8% of articles
+
+  Verdict: Not worth the effort for 19 articles
+
+  ---
+  Option 3: Document Why We Can't Use Location Properly
+
+  What we'd document:
+  Location relevance implemented with limitations:
+  - Article location: 0.2% coverage, corrupted data
+  - User location: 7.9% coverage
+  - Solution: City-based popularity as proxy for local relevance
+
+  Pros:
+  - ✅ Honest about data limitations
+  - ✅ Shows we tried
+
+  Cons:
+  - ❌ Doesn't fulfill assignment requirement
+  - ❌ Looks like we gave up
+
+
+
+
+
+
+
+
+
+
+
+
+FEATURE ENGINEERING PIPELINE (Section 1)
+
+  Goal: Create features that enable the 4 assignment requirements
+
+  ---
+  1. USER'S READING HISTORY
+
+  What we create:
+
+  1.1 Interaction Matrix (Section 1.4.1)
+  Input: events.csv (3.5M interactions)
+  Process:
+    - For each user-article pair, calculate engagement = 2*read + click
+    - Create sparse matrix: 8,977 users × 14,622 articles
+  Output: interaction_matrix.pkl
+
+  1.2 User Interaction Counts (Section 1.3)
+  Input: events.csv
+  Process:
+    - Count total interactions per user
+    - Count reads, clicks separately
+  Output: user_profiles.csv (num_interactions, num_reads, num_clicks columns)
+
+  Purpose: Captures WHAT users read and HOW MUCH they engage
+
+  ---
+  2. USER'S EXPRESSED INTERESTS
+
+  What we create:
+
+  2.1 Article TF-IDF Vectors (Section 1.2)
+  Input:
+    - training_content.csv (8,170 articles)
+    - testing_content.csv (970 articles)
+
+  Process:
+    - Parse categories column: "travel,sports" → tokenize
+    - Fit TF-IDF on TRAINING categories only → Learn 38 category features
+    - Transform TRAINING articles → 8,170 × 38 matrix
+    - Transform TESTING articles → 970 × 38 matrix (same vocabulary)
+
+  Output:
+    - training_tfidf.pkl (8,170 × 38)
+    - testing_tfidf.pkl (970 × 38)
+    - tfidf_vectorizer.pkl (for vocabulary)
+
+  2.2 User Category Profiles (Section 1.3)
+  Input: events.csv + training_content.csv
+  Process:
+    - Merge events with article categories
+    - Aggregate all categories a user has read
+    - Example: User reads [travel, travel, sports] → "travel,travel,sports"
+    - Transform using SAME TF-IDF vectorizer → 8,689 × 38 matrix
+    
+  Output:
+    - user_category_tfidf.pkl (8,689 × 38)
+    - user_profiles.csv (top_categories column)
+
+  Purpose: Captures WHICH TOPICS users prefer (expressed through behavior)
+
+  ---
+  3. POPULARITY OF ARTICLES
+
+  What we create:
+
+  3.1 Article Popularity Scores (Section 1.2)
+  Input: events.csv
+
+  Process:
+    - For TRAINING articles:
+      Count reads, clicks, unique readers from historical events
+      popularity_score = 0.5*reads + 0.3*clicks + 0.2*unique_readers
+
+    - For TESTING articles:
+      No historical data → popularity_score = 0 (or global average)
+
+  Output: article_popularity.pkl 
+    {
+      "training_article_1": 245.3,
+      "training_article_2": 89.7,
+      "testing_article_1": 0.0,  ← NEW articles, no history
+      ...
+    }
+
+  Purpose: Trending/popular articles get boosted in recommendations
+
+  ---
+  4. LOCATION RELEVANCE
+
+  What we create:
+
+  4.1 User Cities (Section 1.3)
+  Input: devices.csv
+  Process:
+    - Extract lastknownsubadminarea → user_city
+    - Merge with user_profiles
+
+  Output: user_profiles.csv (user_city column)
+  Coverage: 710 users (7.9% of active users)
+
+  4.2 Article Locations (Section 1.4.3) ← THIS IS WHAT WE'RE ADDING
+  Input: events.csv + devices.csv
+
+  Process:
+    - For TRAINING articles:
+      1. Merge events with user cities
+      2. For each article, calculate: which city's users read it most?
+      3. If ≥50% reads from ONE city → tag as that city
+      4. Otherwise → tag as "NATIONAL"
+
+      Example:
+        Article A: 80% Mumbai users, 20% others → "Mumbai"
+        Article B: 30% Delhi, 25% Mumbai, 45% others → "NATIONAL"
+
+    - For TESTING articles:
+      No readers yet → tag ALL as "NATIONAL"
+
+  Output: article_locations.pkl
+    {
+      "training_article_1": "Mumbai",     ← Inferred from readers
+      "training_article_2": "NATIONAL",   ← Mixed readership
+      "testing_article_1": "NATIONAL",    ← No readers yet
+      "testing_article_2": "NATIONAL",    ← No readers yet
+      ...
+    }
+
+  Coverage:
+    - Training: ~10% get specific cities, ~90% NATIONAL
+    - Testing: 100% NATIONAL (can't infer without readers)
+
+  Purpose: Match users to local content when possible
+
+  ---
+  TRAINING vs TESTING HANDLING:
+
+    | Feature    | Training Articles (8,170)                               | Testing Articles (970)                                   |
+  |------------|---------------------------------------------------------|----------------------------------------------------------|
+  | TF-IDF     | Fit vocabulary                                          | Transform with training vocab                            |
+  | Popularity | Calculate from events                                   | Set to 0 (no history)                                    |
+  | Location   | Infer from reader geography (~10% local, ~90% NATIONAL) | Use newsDistrict where valid (~32% local, ~68% NATIONAL) |
+  | Metadata   | Available                                               | Available                                                |
+
+  ---
+  FINAL OUTPUT (data/features/):
+
+  1. training_tfidf.pkl         (8,170 × 38)
+  2. testing_tfidf.pkl          (970 × 38)
+  3. user_category_tfidf.pkl    (8,689 × 38)
+  4. interaction_matrix.pkl     (8,977 × 14,622)
+  5. user_similarity.pkl        (6,342 users with neighbors)
+  6. article_popularity.pkl     (dict: article → score)
+  7. article_locations.pkl      (dict: article → city/NATIONAL) ← NEW
+  8. user_profiles.csv          (8,689 × 7, includes user_city)
+  9. article_features.csv       (9,140 × 22)
+  10. mappings.pkl              (ID mappings)
+
+  ---
+  HOW RECOMMENDERS WILL USE THESE:
+
+  Content-Based:
+  - User category TF-IDF × Article TF-IDF = similarity score
+    - Article popularity boost
+    - Language/type matching
+    - Location matching (if user & article have location)
+
+  Collaborative:
+  - User similarity × Neighbor ratings = predicted score
+    - Article popularity boost
+
+    - Location matching
+
+
+ CORRECTED MAPPING:
+
+  | Assignment Requirement        | Features Created                                   | File(s)                 |
+  |-------------------------------|----------------------------------------------------|-------------------------|
+  | 1. User's reading history     | num_interactions, num_reads, num_clicks, read_rate | user_profiles.csv       |
+  |                               | User-article engagement matrix                     | interaction_matrix.pkl  |
+  | 2. User's expressed interests | category_text, top_categories                      | user_profiles.csv       |
+  |                               | User category TF-IDF vectors                       | user_category_tfidf.pkl |
+  | 3. Article popularity         | Popularity scores                                  | article_popularity.pkl  |
+  | 4. Location relevance         | user_city                                          | user_profiles.csv       |
+  |                               | Article locations                                  | article_locations.pkl   |
+
+
+
+ PLAN: User's Reading History Feature Engineering
+
+  Goal:
+
+  Capture WHAT users read and HOW MUCH they engage with articles.
+
+  ---
+  Outputs We Need:
+
+  1. interaction_matrix.pkl (Sparse Matrix: 8,977 × 14,622)
+
+  - What: User-article engagement scores
+  - Why: For collaborative filtering (find similar users based on reading patterns)
+  - Format: Sparse CSR matrix (97.89% empty, saves memory)
+
+  2. user_profiles.csv (Partial - just reading history columns)
+
+  - What: Aggregated stats per user
+  - Columns: deviceId, num_interactions, num_reads, num_clicks, read_rate
+  - Why: For user segmentation and fallback logic
+
+  ---
+  Step-by-Step Plan:
+
+  Step 1: Create User-Article Engagement Scores
+
+  Input: events.csv (3,544,161 interactions)
+
+  Process:
+    1. Calculate engagement weight for each interaction
+       - read event = 2 points (strong signal)
+       - click event = 1 point (weaker signal)
+
+    2. Group by (deviceId, hashId) and sum engagement
+       - User A read Article X twice, clicked once = 2+2+1 = 5
+
+    3. Result: ~2.7M unique user-article pairs with scores
+
+  Output: DataFrame with (deviceId, hashId, engagement_score)
+
+  Step 2: Create Sparse Interaction Matrix
+
+  Process:
+    1. Create ID mappings:
+       - user_to_idx: {deviceId → 0-8976}
+       - article_to_idx: {hashId → 0-14621}
+
+    2. Convert to matrix indices:
+       - (user_idx, article_idx, engagement_score)
+
+    3. Build sparse CSR matrix:
+       - Shape: (8,977, 14,622)
+       - Non-zero entries: 2,766,169
+       - Sparsity: 97.89% (most users haven't read most articles)
+
+  Output: interaction_matrix.pkl
+
+  Step 3: Aggregate User-Level Statistics
+
+  Process:
+    1. Group events by deviceId
+    2. Calculate per user:
+       - num_interactions = count(all events)
+       - num_reads = count(read events)
+       - num_clicks = count(click events)
+       - read_rate = num_reads / num_interactions
+
+  Output: DataFrame with reading history stats
+
+  Step 4: Save ID Mappings
+
+  Save mappings for later use:
+    - user_to_idx, idx_to_user
+    - article_to_idx, idx_to_article
+
+  Output: mappings.pkl (partial - just user/article IDs)
+
+  ---
+  Where This Fits in the Notebook:
+
+  Current Status:
+  - Section 1.1: Load data ✓ (already done)
+  - Section 1.2: Article features ✓ (already done)
+
+  We'll Add:
+  - Section 1.3 (Part 1): User Reading History
+    - Create interaction matrix
+    - Calculate user interaction stats
+    - Save user_profiles.csv (partial - just reading columns for now)
+
+  Later:
+  - Section 1.3 (Part 2): Add expressed interests (categories)
+  - Section 1.3 (Part 3): Add user metadata (city, language)
+
+  ---
+  Expected Output Files (After Step 1):
+
+  data/features/
+  ├── interaction_matrix.pkl      ← NEW
+  ├── mappings.pkl                ← NEW (partial)
+  └── user_profiles.csv           ← NEW (partial: deviceId, num_interactions, 
+                                                num_reads, num_clicks, read_rate)
+
+  ---
+  Questions Before We Start:
+
+  1. Should we use the existing events.csv with all columns, or do we need to calculate read/click flags differently?
+  2. The engagement weight formula: 2 × read + 1 × click - is this good, or do you want different weights?
+  3. Should we proceed with this plan?
+
+   1. interaction_matrix.pkl
+     - Shape: 8,977 × 14,622
+     - Contains: Engagement scores for user-article pairs
+     - Based on: Historical events.csv data
+
+  From Section 1.3 (User Stats):
+
+  2. user_profiles.csv (partial - just these columns for now)
+     - deviceId
+     - num_interactions
+     - num_reads
+     - num_clicks
+     - read_rate
+
+  Supporting Files:
+
+  3. mappings.pkl (or can be in CSV)
+     - user_to_idx, idx_to_user
+     - article_to_idx, idx_to_article
+
+| File                   | Generated In  | Used for Training Articles?     | Used for Testing Articles? |
+  |------------------------|---------------|---------------------------------|----------------------------|
+  | interaction_matrix.pkl | Section 1.4.1 | ✅ YES (collaborative filtering) | ❌ NO (no history)          |
+  | user_profiles.csv      | Section 1.3   | ✅ YES (user segmentation)       | ✅ YES (user segmentation)  |
+  | mappings.pkl           | Section 1.4.1 | ✅ YES                           | ⚠️ PARTIAL (users only)    |
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  Important correction first:
+
+  Article TF-IDF × User TF-IDF ≠ Interaction Matrix
+
+  These are DIFFERENT:
+
+  1. Content-Based Similarity (TF-IDF):
+  # Cosine similarity between user and article vectors
+  user_category_tfidf (8,689 × 38)
+  ×
+  article_tfidf (8,170 × 38 or 970 × 38)
+  = similarity scores (how similar are user interests to article content)
+
+  2. Interaction Matrix (from events):
+  # Actual historical user-article interactions
+  interaction_matrix (8,977 × 14,622)
+  = engagement scores (what users actually read/clicked)
+
+  ---
+  HOW EACH FEATURE IS USED:
+
+  TRAINING ARTICLES (Collaborative + Content-Based):
+
+  | Feature               | Where Used              | Purpose                                     |
+  |-----------------------|-------------------------|---------------------------------------------|
+  | interaction_matrix    | Collaborative filtering | Find similar users, predict scores          |
+  | article_tfidf         | Content-based           | Match user interests to article content     |
+  | user_category_tfidf   | Content-based           | User's interest vector                      |
+  | article_popularity    | Both algorithms         | Boost popular articles (15% weight)         |
+  | user_city             | Both algorithms         | Match with article_location (10% weight)    |
+  | article_location      | Both algorithms         | Match with user_city (10% weight)           |
+  | language_encoding     | Both algorithms         | Match user language preference (10% weight) |
+  | newsType_encoded      | Both algorithms         | Match user preferred type (10% weight)      |
+  | all_content DataFrame | Both                    | Fast lookup of metadata                     |
+
+  ---
+  TESTING ARTICLES (Content-Based ONLY):
+
+  | Feature               | Used?      | Why?                                               |
+  |-----------------------|------------|----------------------------------------------------|
+  | interaction_matrix    | ❌ NO       | Testing articles have NO interactions (0% overlap) |
+  | article_tfidf         | ✅ YES      | Can still match categories                         |
+  | user_category_tfidf   | ✅ YES      | User interests still valid                         |
+  | article_popularity    | ⚠️ PARTIAL | Testing articles = 0.0 (no history)                |
+  | user_city             | ✅ YES      | Still match with article_location                  |
+  | article_location      | ✅ YES      | Inferred from newsDistrict (~32% coverage)         |
+  | language_encoding     | ✅ YES      | Can match language                                 |
+  | newsType_encoded      | ✅ YES      | Can match type preference                          |
+  | all_content DataFrame | ✅ YES      | Lookup metadata                                    |
+
+  ---
+  FORMULA BREAKDOWN:
+
+  Training Articles (Hybrid):
+
+  Option 1: Collaborative Filtering
+  score = (
+      collaborative_score * 0.70 +  # From interaction_matrix + user similarity
+      popularity_boost * 0.20 +     # From article_popularity
+      geo_match * 0.10              # From user_city × article_location
+  )
+
+  Option 2: Content-Based
+  score = (
+      category_similarity * 0.50 +  # user_category_tfidf × article_tfidf
+      popularity_boost * 0.15 +     # From article_popularity
+      language_match * 0.10 +       # user_language × article_language
+      type_match * 0.10 +          # user_preferred_type × article_newsType
+      geo_match * 0.10 +           # user_city × article_location
+      freshness * 0.05             # Recency bonus
+  )
+
+  ---
+  Testing Articles (Content-Based ONLY):
+
+  score = (
+      category_similarity * 0.60 +  # user_category_tfidf × article_tfidf
+      language_match * 0.15 +       # user_language × article_language
+      type_match * 0.15 +          # user_preferred_type × article_newsType
+      geo_match * 0.10 +           # user_city × article_location
+      # NO collaborative (no interaction history)
+      # NO popularity boost (testing articles = 0.0)
+  )
+
+  ---
+  SUMMARY:
+
+  | Feature                | Training Use            | Testing Use             | Purpose            |
+  |------------------------|-------------------------|-------------------------|--------------------|
+  | Article/User TF-IDF    | Content similarity      | Content similarity      | Match interests    |
+  | Interaction matrix     | Collaborative filtering | ❌ Not available         | Find patterns      |
+  | all_content            | Metadata lookup         | Metadata lookup         | Fast access        |
+  | Popularity             | Boost score             | ❌ Zero for new articles | Trending boost     |
+  | Language encoding      | Match preference        | Match preference        | Language relevance |
+  | NewsType encoding      | Match preference        | Match preference        | Type relevance     |
+  | User city              | Location match          | Location match          | Local relevance    |
+  | Article location       | Location match          | Location match          | Local relevance    |
+  | City-category affinity | ❌ Analysis only         | ❌ Analysis only         | Insights           |
+
+
+
+
+
+  Yes, exactly! In simple terms:
+
+  ---
+  How We Measure: "How similar is this user to this article?"
+
+  Step 1: Convert to vectors
+
+  Article:
+  - Article has categories: "sports, cricket"
+  - Convert to numbers: [0.0, 0.8, 0.6, 0.0, ...] (38 numbers)
+  - This is article_tfidf
+
+  User:
+  - User reads: "sports, sports, cricket, entertainment"
+  - Convert to numbers: [0.2, 0.7, 0.5, 0.3, ...] (38 numbers)
+  - This is user_category_tfidf
+
+  ---
+  Step 2: Calculate similarity
+
+  from sklearn.metrics.pairwise import cosine_similarity
+
+  user_vector = user_category_tfidf[user_idx]      # (1, 38)
+  article_vector = article_tfidf[article_idx]       # (1, 38)
+
+  similarity_score = cosine_similarity(user_vector, article_vector)[0][0]
+  # Result: 0.0 to 1.0
+  # 0.0 = completely different
+  # 1.0 = exactly the same interests
+
+  ---
+  In Plain English:
+
+  Question: Should we recommend Article X to User Y?
+
+  Answer Process:
+  1. Article X loves talking about: [sports: high, cricket: high, politics: zero]
+  2. User Y loves reading about: [sports: high, cricket: medium, entertainment: low]
+  3. Similarity: 0.82 (very similar!)
+  4. Conclusion: Yes, User Y will probably like Article X
+
+  ---
+  Mathematical Analogy:
+
+  Think of it like matching dating profiles:
+
+  - Article profile: "I like sports (90%), cricket (80%), politics (0%)"
+  - User profile: "I like sports (85%), cricket (70%), entertainment (20%)"
+  - Match score: 82% compatible!
+
+  The cosine similarity measures the angle between these two vectors:
+  - Small angle (vectors point same direction) = High similarity = Good match
+  - Large angle (vectors point different directions) = Low similarity = Bad match
+
+  ---
+  Code Example:
+
+  # User reads sports articles a lot
+  user_vector = [0.0, 0.9, 0.7, 0.1, ...]
+                  # [entertainment, sports, cricket, politics, ...]
+
+  # Article about cricket
+  article_vector = [0.0, 0.8, 0.9, 0.0, ...]
+                   # [entertainment, sports, cricket, politics, ...]
+
+  # Calculate similarity
+  similarity = cosine_similarity([user_vector], [article_vector])
+  # Result: 0.95 → Very similar! Recommend this article!
+
+  # Article about politics
+  article_vector2 = [0.0, 0.0, 0.0, 0.9, ...]
+  similarity2 = cosine_similarity([user_vector], [article_vector2])
+  # Result: 0.10 → Not similar. Don't recommend.
+
+
+
+
+
+
+  Excellent interview question! Here's how to justify algorithm choice from EDA:
+
+  ---
+  Interview Answer: Why Content-Based + Collaborative Filtering?
+
+  From EDA, we discovered:
+
+  1. Cold-Start Problem (Testing Articles)
+  EDA Finding:
+  - Testing articles: 970 new articles
+  - Overlap with events: 0%
+  - Historical interactions: ZERO
+
+  Algorithm Implication:
+  → MUST use Content-Based (can't use collaborative without history)
+
+  2. User Segmentation
+  EDA Finding:
+  - Passive users (1-9 interactions): 14.08%
+  - Active users (10-99 interactions): 77.14%
+  - Power users (100+ interactions): 8.78%
+
+  Algorithm Implication:
+  → Passive users: Content-Based (not enough history for collaborative)
+  → Active/Power users: Collaborative Filtering (rich interaction data)
+
+  3. Data Sparsity
+  EDA Finding:
+  - Interaction matrix: 97.89% sparse
+  - Most users haven't read most articles
+
+  Algorithm Implication:
+  → Need BOTH approaches to cover gaps:
+    - Collaborative finds patterns in sparse data
+    - Content-based fills gaps where no similar users exist
+
+  4. Rich Metadata Available
+  EDA Finding:
+  - Articles have categories (100% coverage)
+  - Users show clear category preferences
+  - Can extract TF-IDF features (38 dimensions)
+
+  Algorithm Implication:
+  → Content-Based is viable (have features to match)
+
+  5. Strong Interaction Signal
+  EDA Finding:
+  - 2.7M user-article interactions
+  - 6,342 users with ≥10 interactions (eligible for similarity)
+  - Event types: TimeSpent, Bookmarked, Shared (rich engagement)
+
+  Algorithm Implication:
+  → Collaborative Filtering is viable (enough data to find neighbors)
+
+  ---
+  Decision Matrix from EDA:
+
+  | EDA Insight                   | Content-Based  | Collaborative          | Hybrid               |
+  |-------------------------------|----------------|------------------------|----------------------|
+  | Testing articles (0% overlap) | ✅ Works        | ❌ Fails                | ✅ Use CB for testing |
+  | Passive users (14%)           | ✅ Works        | ❌ Noisy                | ✅ Use CB for passive |
+  | Active users (86%)            | ✅ Works        | ✅ Works                | ✅ Use both, combine  |
+  | Category metadata (100%)      | ✅ Needs this   | ❌ Doesn't use          | ✅ CB leverages       |
+  | Interaction data (2.7M)       | ❌ Doesn't use  | ✅ Needs this           | ✅ CF leverages       |
+  | Sparsity (97.89%)             | ✅ Handles gaps | ⚠️ Needs similar users | ✅ Complementary      |
+
+  ---
+  Interview Script:
+
+  Interviewer: "Why did you choose these two algorithms?"
+
+  You:
+  "From the EDA, I identified three critical findings:
+
+  First, testing articles have ZERO interaction history - 0% overlap with events. This immediately ruled out collaborative-only approaches and mandated content-based filtering for new articles.
+
+  Second, user segmentation showed 14% passive users with <10 interactions - too sparse for reliable collaborative filtering. But we also have 86% active/power users with rich interaction history - perfect for collaborative filtering.
+
+  Third, the interaction matrix is 97.89% sparse, but we have complete category metadata. This suggested a hybrid approach where:
+  - Content-based handles cold-start and sparse users
+  - Collaborative leverages interaction patterns for active users
+  - Together they complement each other's weaknesses
+
+  The data itself told us we needed both algorithms, not an algorithm choice made in isolation."
+
+
+
+
+  Content-Based Algorithm - File Mapping to Assignment Requirements:
+
+  ---
+  Assignment Requirement 1: User's Reading History
+
+  Files Used:
+  ✅ user_profiles.csv
+     - num_interactions column
+     - Used for: User segmentation, filtering
+     - NOT used in similarity calculation
+
+  Purpose: Identify if user has enough history (fallback logic)
+
+  ---
+  Assignment Requirement 2: User's Expressed Interests
+
+  Files Used:
+  ✅ user_category_tfidf.pkl (8,689 × 38)
+     - User interest vectors
+
+  ✅ training_tfidf.pkl (8,170 × 38) OR testing_tfidf.pkl (970 × 38)
+     - Article category vectors
+
+  ✅ tfidf_vectorizer.pkl
+     - Vocabulary (38 features)
+
+  How Used:
+  category_similarity = cosine_similarity(
+      user_category_tfidf[user_idx],     # User interests
+      article_tfidf[article_idx]         # Article content
+  )
+  # Main signal: 50-60% weight
+
+  ---
+  Assignment Requirement 3: Popularity of Articles
+
+  Files Used:
+  ✅ article_popularity.pkl
+     - Dict: {article_id → normalized_score (0-1)}
+     
+  ✅ article_features.csv
+     - popularity column (merged from dict)
+
+  How Used:
+  popularity_boost = article_popularity.get(article_id, 0.0)
+  # Weight: 15% of final score
+
+  ---
+  Assignment Requirement 4: Location Relevance
+
+  Files Used:
+  ✅ user_profiles.csv
+     - user_city column
+
+  ✅ article_locations.pkl
+     - Dict: {article_id → city/NATIONAL}
+
+  How Used:
+  user_city = user_profiles.loc[user_id, 'user_city']
+  article_location = article_locations.get(article_id)
+
+  if user_city == article_location:
+      geo_score = 1.0
+  elif article_location == "NATIONAL":
+      geo_score = 0.7
+  else:
+      geo_score = 0.5
+  # Weight: 10% of final score
+
+  ---
+  Additional Files (Supporting Features):
+
+  Files Used:
+  ✅ article_features.csv
+     - lang_en, lang_hi, ... (language one-hot encoding)
+     - newsType_encoded (type encoding)
+     - Used for language/type matching (10% each)
+
+  ---
+  Complete Content-Based File List:
+
+  | File                    | Requirement                      | Weight in Score    |
+  |-------------------------|----------------------------------|--------------------|
+  | user_category_tfidf.pkl | #2 Expressed interests           | 50-60%             |
+  | training_tfidf.pkl      | #2 Expressed interests           | 50-60%             |
+  | testing_tfidf.pkl       | #2 Expressed interests           | 50-60%             |
+  | article_popularity.pkl  | #3 Popularity                    | 15%                |
+  | article_locations.pkl   | #4 Location                      | 10%                |
+  | user_profiles.csv       | #1 Reading history + #4 Location | Segmentation + 10% |
+  | article_features.csv    | Metadata                         | 20% (lang+type)    |
+  | tfidf_vectorizer.pkl    | Transform text                   | N/A (model)        |
+
+
+
+
+  TRAINING & TESTING IN RECOMMENDATION SYSTEMS (Step-by-Step)
+
+  ---
+  PART 1: TRAINING (Feature Engineering)
+
+  What "Training" Means Here:
+
+  NOT training a model (no gradient descent, no epochs)
+
+  Instead: Building features from historical data
+
+  ---
+  Step 1: Load Historical Data
+
+  Input:
+  - events.csv (3.5M interactions from past)
+  - training_content.csv (8,170 articles with metadata)
+  - devices.csv (10,400 users with metadata)
+
+  This is our "training data" - past behavior
+
+  ---
+  Step 2: Build User Features
+
+  Process:
+  1. For each user, collect all articles they read
+  2. Extract categories from those articles
+  3. Create TF-IDF vector (38 dimensions)
+  4. Count their interactions
+  5. Extract their city, language preference
+
+  Output:
+  - user_category_tfidf.pkl (8,689 users × 38)
+  - user_profiles.csv (deviceId, num_interactions, user_city, etc.)
+
+  This captures: "What does this user like?"
+
+  ---
+  Step 3: Build Article Features
+
+  Process:
+  1. For each article, extract categories
+  2. Create TF-IDF vector (38 dimensions)
+  3. Calculate popularity from past interactions
+  4. Infer location from past readers
+  5. Extract language, type
+
+  Output:
+  - training_tfidf.pkl (8,170 articles × 38)
+  - article_popularity.pkl (scores for each article)
+  - article_locations.pkl (city/NATIONAL for each article)
+
+  This captures: "What is this article about?"
+
+  ---
+  Step 4: Build Interaction Matrix
+
+  Process:
+  1. For each (user, article) pair, calculate engagement
+  2. engagement = event_weights[event_type]
+  3. Create sparse matrix: 8,977 users × 14,622 articles
+  4. Most cells are zero (97.89% sparse)
+
+  Output:
+  - interaction_matrix.pkl
+
+  This captures: "What did users actually read?"
+
+  ---
+  Step 5: Build User Similarity
+
+  Process:
+  1. Filter users with ≥10 interactions (6,342 users)
+  2. For each user, compute similarity with all others
+  3. Keep top 50 most similar users
+  4. Store as dictionary
+
+  Output:
+  - user_similarity.pkl
+
+  This captures: "Which users are similar to each other?"
+
+  ---
+  Step 6: Save All Features
+
+  All features saved to data/features/
+  Training phase COMPLETE - features ready to use
+
+  ---
+  PART 2: TESTING ON TRAINING DATA (Validation)
+
+  Purpose: Evaluate if algorithms work before using on real testing data
+
+  ---
+  Step 1: Temporal Split
+
+  Historical Data Split by Time:
+  |-------- 80% Train ---------|--- 20% Validation ---|
+  Jan 1 --------> June 15       June 16 -----> July 31
+
+  Process:
+  1. Sort all events by timestamp
+  2. Take first 80% = training interactions
+  3. Take last 20% = validation interactions (ground truth)
+  4. Hide validation from algorithm, use as answer key
+
+  Code:
+  events_sorted = events.sort_values('eventTimestamp')
+  split_idx = int(len(events) * 0.8)
+
+  train_events = events_sorted[:split_idx]
+  val_events = events_sorted[split_idx:]
+
+  # Ground truth = what users actually read in validation period
+  val_ground_truth = val_events.groupby('deviceId')['hashId'].apply(list).to_dict()
+
+  Example:
+  val_ground_truth = {
+      'user_A': ['article_5', 'article_12', 'article_89'],  # Actually read these
+      'user_B': ['article_3', 'article_45'],
+      ...
+  }
+
+  ---
+  Step 2: Generate Content-Based Recommendations
+
+  Process:
+  1. For each user in validation set
+  2. Get their category vector (from features)
+  3. Compare with all training article vectors
+  4. Calculate similarity scores
+  5. Rank articles by score
+  6. Return top 50
+
+  Code:
+  cb_recommender = ContentBasedRecommender(
+      articles=training_content,      # Pool of 8,170 articles
+      article_tfidf=training_tfidf    # Their vectors
+  )
+
+  For user_A:
+      1. user_vector = user_category_tfidf[user_A]  # [0.2, 0.7, 0.5, ...]
+      2. For each training article:
+          - article_vector = training_tfidf[article_idx]
+          - category_sim = cosine_similarity(user_vector, article_vector)
+          - lang_score = 1.0 if match else 0.0
+          - pop_score = article_popularity[article]
+          - type_score = 1.0 if match else 0.5
+          - geo_score = 1.0 if same city else 0.5
+          
+          - final_score = (
+              0.50 * category_sim +
+              0.15 * lang_score +
+              0.15 * pop_score +
+              0.10 * type_score +
+              0.10 * geo_score
+          )
+
+      3. Sort articles by final_score
+      4. Take top 50 articles
+
+  Output:
+  cb_predictions = {
+      'user_A': ['article_12', 'article_5', 'article_33', ...],  # Top 50 predicted
+      'user_B': ['article_45', 'article_3', 'article_78', ...],
+      ...
+  }
+
+  ---
+  Step 3: Generate Collaborative Recommendations
+
+  Process:
+  1. For each user, find their similar users (from user_similarity_dict)
+  2. Look at what those similar users read
+  3. Weight by similarity scores
+  4. Rank articles
+  5. Return top 50
+
+  Code:
+  For user_A:
+      1. neighbors = user_similarity_dict[user_A]
+         # [('user_B', 0.85), ('user_C', 0.72), ...]
+
+      2. For each training article:
+          score = 0
+          total_sim = 0
+
+          For each neighbor:
+              if neighbor read this article:
+                  engagement = interaction_matrix[neighbor, article]
+                  score += similarity[user_A, neighbor] * engagement
+                  total_sim += similarity[user_A, neighbor]
+
+          predicted_score = score / total_sim if total_sim > 0 else 0
+
+          # Add boosts
+          predicted_score += 0.20 * article_popularity[article]
+          predicted_score += 0.10 * geo_match(user_city, article_location)
+
+      3. Sort articles by predicted_score
+      4. Take top 50
+
+  Output:
+  collab_predictions = {
+      'user_A': ['article_89', 'article_12', 'article_5', ...],  # Top 50 predicted
+      'user_B': ['article_3', 'article_67', 'article_45', ...],
+      ...
+  }
+
+  ---
+  Step 4: Calculate Metrics
+
+  ---
+  Metric 1: NDCG@50 (Normalized Discounted Cumulative Gain)
+
+  Measures: How good is the ranking?
+
+  For user_A:
+      predicted = ['article_12', 'article_5', 'article_33', ...]  # Top 50
+      actual = ['article_5', 'article_12', 'article_89']          # Ground truth
+
+      Step 1: Calculate DCG (Discounted Cumulative Gain)
+          For each position in predicted list (rank 1-50):
+              if article at position is in actual:
+                  relevance = 1
+              else:
+                  relevance = 0
+
+              gain = relevance / log2(position + 1)
+
+          DCG = sum of all gains
+
+          Example:
+          Rank 1: article_12 (in actual) → 1 / log2(2) = 1.0
+          Rank 2: article_5 (in actual) → 1 / log2(3) = 0.631
+          Rank 3: article_33 (NOT in actual) → 0 / log2(4) = 0.0
+          ...
+          DCG = 1.0 + 0.631 + 0.0 + ... = 1.631
+
+      Step 2: Calculate Ideal DCG (best possible ranking)
+          Best case: All 3 actual articles at top
+          Rank 1: article_5 → 1.0
+          Rank 2: article_12 → 0.631
+          Rank 3: article_89 → 0.5
+          IDCG = 2.131
+
+      Step 3: Normalize
+          NDCG@50 = DCG / IDCG = 1.631 / 2.131 = 0.765
+
+  Calculate for all users:
+      avg_ndcg = mean([0.765, 0.823, 0.654, ...])
+
+  ---
+  Metric 2: Precision@50
+
+  Measures: What % of recommendations are relevant?
+
+  For user_A:
+      predicted = ['article_12', 'article_5', 'article_33', ..., 'article_999']  # 50 items
+      actual = ['article_5', 'article_12', 'article_89']
+
+      hits = predicted ∩ actual = ['article_12', 'article_5']  # 2 matches
+
+      Precision@50 = hits / 50 = 2 / 50 = 0.04 (4%)
+
+  Calculate for all users:
+      avg_precision = mean([0.04, 0.06, 0.02, ...])
+
+  ---
+  Metric 3: Recall@50
+
+  Measures: What % of relevant items did we find?
+
+  For user_A:
+      predicted = ['article_12', 'article_5', 'article_33', ...]  # 50 items
+      actual = ['article_5', 'article_12', 'article_89']           # 3 items
+
+      hits = predicted ∩ actual = ['article_12', 'article_5']  # Found 2 out of 3
+
+      Recall@50 = hits / total_relevant = 2 / 3 = 0.667 (66.7%)
+
+  Calculate for all users:
+      avg_recall = mean([0.667, 0.500, 0.333, ...])
+
+  ---
+  Metric 4: MAP@50 (Mean Average Precision)
+
+  Measures: Precision at each relevant item position
+
+  For user_A:
+      predicted = ['article_12', 'article_5', 'article_33', ..., 'article_89']
+      actual = ['article_5', 'article_12', 'article_89']
+
+      Step 1: Find positions of relevant items in predicted
+          article_12 at rank 1 ✓
+          article_5 at rank 2 ✓
+          article_89 at rank 50 ✓
+
+      Step 2: Calculate precision at each position
+          P@1 = 1/1 = 1.0        (1 hit in top 1)
+          P@2 = 2/2 = 1.0        (2 hits in top 2)
+          P@50 = 3/50 = 0.06     (3 hits in top 50)
+
+      Step 3: Average these precisions
+          AP = (1.0 + 1.0 + 0.06) / 3 = 0.687
+
+  Calculate for all users:
+      MAP = mean([0.687, 0.554, 0.823, ...])
+
+  ---
+  Metric 5: Coverage
+
+  Measures: What % of articles get recommended at least once?
+
+  All recommendations across all users:
+      recommended_articles = union of all predicted lists
+      = {article_12, article_5, article_33, article_89, ...}
+
+      Coverage = len(recommended_articles) / total_training_articles
+               = 6,543 / 8,170
+               = 0.801 (80.1%)
+
+  Good: High coverage means diverse recommendations
+  Bad: Low coverage means always recommending same articles
+
+  ---
+  Metric 6: Diversity
+
+  Measures: How different are recommended articles from each other?
+
+  For user_A's top 50:
+      For each pair of articles (i, j):
+          similarity_ij = cosine_similarity(article_i_vector, article_j_vector)
+      
+      avg_similarity = mean of all pairs
+
+      Diversity = 1 - avg_similarity
+
+      Example:
+          avg_similarity = 0.3 (articles are different)
+          Diversity = 1 - 0.3 = 0.7 (high diversity, good!)
+
+  Calculate for all users:
+      avg_diversity = mean([0.7, 0.65, 0.8, ...])
+
+  ---
+  Metric 7: Novelty
+
+  Measures: Are we recommending less-popular (novel) items?
+
+  For user_A's top 50:
+      novelty_scores = []
+
+      For each recommended article:
+          popularity = article_popularity[article]
+          novelty = -log2(popularity + 1)  # Lower popularity = higher novelty
+          novelty_scores.append(novelty)
+
+      avg_novelty = mean(novelty_scores)
+
+  Calculate for all users:
+      overall_novelty = mean([3.2, 2.8, 4.1, ...])
+
+  Higher = more novel (recommending less-popular items)
+
+  ---
+  Step 5: Compare Algorithms
+
+  Results Table:
+
+                      Content-Based    Collaborative
+  NDCG@50                 0.0214           0.0298
+  Precision@50            0.0041           0.0067
+  Recall@50               0.0213           0.0345
+  MAP@50                  0.0089           0.0134
+  Coverage                78.5%            82.3%
+  Diversity               0.685            0.623
+  Novelty                 3.42             2.89
+
+  Conclusion:
+  - Collaborative is better at accuracy (higher NDCG, Precision, Recall)
+  - Content-Based has higher diversity and novelty
+  - Choose Collaborative for training articles (has interaction history)
+  - Use Content-Based for testing articles (no history available)
+
+  ---
+  SUMMARY:
+
+  TRAINING = Feature Engineering (Section 1)
+  - Build user vectors, article vectors, interaction matrix
+  - No model training, just feature extraction
+
+  TESTING = Validation on Training Data
+  1. Split by time (80/20)
+  2. Generate recommendations for validation users
+  3. Compare predictions vs ground truth
+  4. Calculate NDCG, Precision, Recall, MAP, Coverage, Diversity, Novelty
+  5. Choose best algorithm
