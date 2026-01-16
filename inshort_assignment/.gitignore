@@ -1,0 +1,12 @@
+# Exclude everything by default
+*
+
+# Include all folders
+!*/
+
+# Include PDF files
+!*.pdf
+
+# Include .gitignore itself
+!.gitignore
+!README.md
