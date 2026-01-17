@@ -4,7 +4,7 @@
 
 This document explains why Content-Based Filtering and Collaborative Filtering were selected as complementary approaches for the news recommendation system. The decision was driven directly by empirical insights from Exploratory Data Analysis (EDA).
 
----
+
 
 ## Summary
 
@@ -15,7 +15,7 @@ This document explains why Content-Based Filtering and Collaborative Filtering w
 
 **Key Finding:** No single algorithm sufficiently addresses all observed challenges. A Hybrid approach is necessary given the observed data characteristics.
 
----
+
 
 ## 1. Cold-Start Problem (New Articles)
 
@@ -51,7 +51,7 @@ Content-Based Filtering:
 - Cosine similarity between article vectors and user interest profiles
 - Files: `testing_tfidf.pkl`, `user_category_tfidf.pkl`
 
----
+
 
 ## 2. User Segmentation by Activity Level
 
@@ -91,7 +91,7 @@ else:
 - Recommender checks interaction count before choosing algorithm
 - Files: `user_similarity.pkl` (only for active users)
 
----
+
 
 ## 3. Interaction Data Sparsity
 
@@ -128,7 +128,7 @@ else:
 - Content-based as fallback when collaborative similarity is low
 - Files: `interaction_matrix.pkl` (97.30% sparse)
 
----
+
 
 ## 4. Availability of Rich Metadata
 
@@ -171,7 +171,7 @@ Article B categories: [sports, football]
  - Shared: 5.0
 - Files: `tfidf_vectorizer.pkl`, `training_tfidf.pkl`, `testing_tfidf.pkl`, `user_category_tfidf.pkl`
 
----
+
 
 ## 5. Strength of Interaction Signals
 
@@ -210,7 +210,7 @@ User Y: Bookmarked articles [123, 456, 999]
 - Weighted scoring by neighbor similarity
 - Files: `user_similarity.pkl` (6,924 users with neighbors)
 
----
+
 
 ## Decision Matrix: EDA Insights to Algorithm Choice
 
@@ -229,7 +229,7 @@ User Y: Bookmarked articles [123, 456, 999]
 - ~ Partially effective
 - − Not applicable
 
----
+
 
 ## Implementation Summary
 
@@ -266,6 +266,6 @@ User Y: Bookmarked articles [123, 456, 999]
  - Metrics: Coverage, Diversity, Novelty
  - No ground truth available
 
----
+
 
 
