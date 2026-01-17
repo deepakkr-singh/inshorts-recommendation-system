@@ -2,17 +2,17 @@
 
 ## Table of Contents
 
-1. [Executive Summary](#executive-summary)
-2. [Performance Evaluation](#performance-evaluation)
-3. [A/B Testing Framework](#ab-testing-framework)
-4. [Comparative Analysis](#comparative-analysis)
-5. [Statistical Significance Testing](#statistical-significance-testing)
-6. [Recommendations](#recommendations)
-7. [Appendix](#appendix)
+1. [Executive Summary](#1-summary)
+2. [Performance Evaluation](#2-performance-evaluation)
+3. [A/B Testing Framework](#3-ab-testing-framework)
+4. [Comparative Analysis](#4-comparative-analysis)
+5. [Statistical Significance Testing](#5-statistical-significance-testing)
+6. [Recommendations](#6-recommendations)
+7. [Appendix](#7-appendix)
 
 
 
-## 1. Executive Summary
+## 1. Summary
 
 ### Key Findings
 
