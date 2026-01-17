@@ -638,7 +638,7 @@ Our implementation demonstrates production-grade design suitable for controlled 
 - **Month 3**: Designed to support growth toward 10M daily users
 - **Month 6**: Architecture capable of scaling to Inshorts-level traffic (50M+ users)
 
----
+
 
 # Appendices
 
