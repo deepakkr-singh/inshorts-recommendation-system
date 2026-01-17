@@ -3,7 +3,7 @@
 ## Project Overview
 This project implements a hybrid recommendation system for Inshorts news articles, combining content-based filtering, collaborative filtering, and hybrid approaches to recommend personalized news content to users.
 
----
+
 
 ## Data Architecture
 
@@ -47,7 +47,7 @@ All data is connected through `hashId` (Article ID) as the primary key:
 └─────────────────────────────────────────────────────────┘
 ```
 
----
+
 
 ## Data Quality Summary
 
@@ -73,7 +73,7 @@ All data is connected through `hashId` (Article ID) as the primary key:
 | **preferred_newsType** | 100% | Complete (mostly 'NEWS') |
 | **segment** | 100% | Complete |
 
----
+
 
 ## 1. Category Similarity (50% weight)
 - **Source**: TF-IDF vectors from `categories` column
@@ -109,7 +109,7 @@ All data is connected through `hashId` (Article ID) as the primary key:
 - Unique categories: **19**
 - Total category mentions: **1,067**
 
----
+
 
 ### 3. TF-IDF Transformation
 
@@ -164,7 +164,7 @@ All data is connected through `hashId` (Article ID) as the primary key:
 - Minimal impact: avg 1.23 features/article maintained (same as min_df=1)
 - Only 1 additional zero vector (30 vs 29) - 0.02% impact
 
----
+
 
 ### 4. Missing Category Handling
 
@@ -223,7 +223,7 @@ if article_has_zero_categories:
 
 **Note**: While category fallback is unnecessary, **user metadata fallback IS critical** (92% missing language/location - see User Profile section)
 
----
+
 
 ### 5. Column Names Reference
 
@@ -295,7 +295,7 @@ columns = [
   - Language Match: User-specific (each user prefers different languages)
   - **Popularity: Global** (all users see same popularity score for each article)
 
----
+
 
 ### 2. Source Data
 
@@ -320,7 +320,7 @@ columns = [
 - **0% testing articles** (0/970) have popularity data (cold start scenario)
 - **Historical articles** (6,468) removed from dataset but still in events.csv
 
----
+
 
 ### 3. Popularity Computation Formula
 
@@ -375,7 +375,7 @@ normalized = raw_score / max(raw_score)
 # Result: [0.0, 1.0] range
 ```
 
----
+
 
 ### 4. Coverage Analysis
 
@@ -424,7 +424,7 @@ normalized = raw_score / max(raw_score)
 - Popularity computed but not used (articles don't exist in recommendation pool)
 - Kept in `article_popularity.pkl` for completeness/reference
 
----
+
 
 ### 5. Popularity Distribution
 
@@ -460,7 +460,6 @@ Std Dev: 0.264
 - Few users or low engagement
 - Example: Newly published, specialized content, low-visibility articles
 
----
 
 ### 6. Implementation Details
 
@@ -509,7 +508,7 @@ def _precompute_features(self):
 - **Fast lookup**: O(1) dictionary access
 - **Easy fallback**: `.get(hashid, 0.0)` handles missing articles gracefully
 
----
+
 
 ### 7. Usage in Recommendation
 
@@ -606,7 +605,7 @@ content_score = 0.60*0.50 + 1.0*0.15 + 0.0*0.15 + 1.0*0.10 + 0.5*0.10
 - Must compensate with strong category/language match
 - This behavior aligns with standard production practices, where new content initially relies on metadata rather than historical performance
 
----
+
 
 ### 8. Cold Start Problem
 
@@ -671,7 +670,7 @@ testing_popularity = 0.0
 - Tests robustness of other features
 - Matches real-world deployment scenario
 
----
+
 
 ### 9. Impact Assessment
 
@@ -741,7 +740,7 @@ Result: Testing article wins (excellent category match > popularity)
 - Testing articles can still rank high with strong content matching
 - System is **robust** to cold start (doesn't collapse without popularity)
 
----
+
 
 ### 10. Key Decisions Rationale
 
@@ -806,7 +805,7 @@ Result: Article X wins (broader appeal > deep engagement)
 - Training recommendations get popularity boost (15% extra)
 - This is **expected and acceptable** in production systems
 
----
+
 
 ### 11. Architecture Comparison
 
@@ -823,7 +822,7 @@ Result: Article X wins (broader appeal > deep engagement)
 | **Missing Handling** | Natural (0 similarity) | Inference from behavior | Default 0.0 |
 | **Cold Start** | No issue (use categories) | No issue (infer language) | Testing articles = 0 |
 
----
+
 
 ## 3. Language Match (15% Weight)
 
@@ -834,7 +833,7 @@ Result: Article X wins (broader appeal > deep engagement)
 - **Method**: Binary matching (1.0 if languages match, 0.0 if mismatch)
 - **Implementation**: Precomputed matrix for fast lookup
 
----
+
 
 ### 2. Source Data
 
@@ -875,7 +874,7 @@ Result: Article X wins (broader appeal > deep engagement)
 | **Twitter** | 1 | 0.01% | Error/noise |
 | **भाषा** | 1 | 0.01% | Error/noise |
 
----
+
 
 ### 3. Language Matrix Creation
 
@@ -913,7 +912,7 @@ def _precompute_features(self):
 - Category: Expensive cosine similarity, sparse to dense (save memory)
 - Language: Cheap equality, small memory footprint (precompute)
 
----
+
 
 ### 4. Missing Data Handling
 
@@ -969,7 +968,7 @@ def infer_user_language(user_id, events_df, article_features_df):
 - Avoids bias (no arbitrary English default for 92%)
 - Behavioral truth: If user reads Hindi, recommend Hindi
 
----
+
 
 #### Article Language (1.23% Missing)
 
@@ -993,7 +992,7 @@ def infer_user_language(user_id, events_df, article_features_df):
 article_langs = test_articles['newsLanguage'].fillna('english').values
 ```
 
----
+
 
 ### 5. Language Matching Implementation
 
@@ -1056,7 +1055,7 @@ content_score = 0.50*0.50 + 1.0*0.15 + 0.8*0.15 + 1.0*0.10 + 0.5*0.10
               = 0.67 (strong recommendation)
 ```
 
----
+
 
 ### 6. User Count Explanation
 
@@ -1090,7 +1089,7 @@ user_category_tfidf.pkl → 8,689 users
 - 8,688 users (99.99%) get language inferred from reading history
 - 1 user (0.01%) gets default 'english'
 
----
+
 
 ### 7. Architecture Comparison
 
@@ -1107,7 +1106,7 @@ user_category_tfidf.pkl → 8,689 users
 | **Implementation** | `cosine_similarity()` | Broadcasting `==` |
 | **Missing Handling** | Natural (0 similarity) | Inference from behavior |
 
----
+
 
 ### 8. Impact Assessment
 
@@ -1132,7 +1131,7 @@ user_category_tfidf.pkl → 8,689 users
 - Only 0.01% users need default
 - Validates to business logic (readers get their language)
 
----
+
 
 ### 9. Key Decisions Rationale
 
@@ -1151,7 +1150,7 @@ user_category_tfidf.pkl → 8,689 users
 - **Rejected**: Leave as NaN or use neutral 0.5
 - **Why**: Minimal impact (1.23%), mode is statistically valid (71.94%), simple implementation
 
----
+
 
 ## 4. Type Match (10% Weight)
 
@@ -1163,7 +1162,7 @@ user_category_tfidf.pkl → 8,689 users
 - **Coverage**: Users 100%, Training 95.75%, Testing 99.90%
 - **Implementation**: Precomputed matrix for fast lookup
 
----
+
 
 ### 2. Source Data
 
@@ -1226,7 +1225,7 @@ preferred_type = article_types.mode()[0]
 | **Other types** | ~100-200 | ~1-2% | Special formats |
 | **Missing** | 348 | 3.81% | Fill with 'NEWS' |
 
----
+
 
 ### 3. Type Matching Implementation
 
@@ -1263,7 +1262,7 @@ def _precompute_features(self):
 - **No repeated work**: Computed once, used across all batches
 - **Fast lookup**: Direct array slicing
 
----
+
 
 ### 4. Missing Data Handling
 
@@ -1302,7 +1301,7 @@ def infer_user_type(user_id, events_df, article_features_df):
 | **Default Fill** | 0 | 0% | Not needed |
 | **Total Coverage** | 8,689 | 100% | Complete |
 
----
+
 
 #### Article Type (3.81% Missing)
 
@@ -1347,7 +1346,7 @@ article_types_filled = articles['newsType'].fillna('NEWS')
 - Preserves true behavior: User's actual reading pattern determines preference
 - Filling only for matching: NaN to 'NEWS' only affects final comparison
 
----
+
 
 ### 5. Type Distribution
 
@@ -1382,7 +1381,7 @@ newsType distribution:
 - **Adequate variety**: Enough content for each user segment
 - **NEWS dominance**: Vast majority are standard text articles
 
----
+
 
 ### 6. Implementation Details
 
@@ -1451,7 +1450,7 @@ content_score = 0.60*0.50 + 1.0*0.15 + 0.8*0.15 + 1.0*0.10 + 0.5*0.10
               = 0.72 (strong recommendation)
 ```
 
----
+
 
 ### 7. Coverage Analysis
 
@@ -1491,7 +1490,7 @@ content_score = 0.60*0.50 + 1.0*0.15 + 0.8*0.15 + 1.0*0.10 + 0.5*0.10
 - **3.81% articles** filled with 'NEWS'
 - **0% users** need default (all inferred successfully)
 
----
+
 
 ### 8. Impact Assessment
 
@@ -1556,7 +1555,7 @@ Result: Weaker category match wins due to type preference
 - For majority (NEWS users), acts as **filter** (eliminates video content)
 - 10% weight is appropriate (not dominant but meaningful)
 
----
+
 
 ### 9. Key Decisions Rationale
 
@@ -1610,7 +1609,7 @@ User prefers VIDEO_NEWS:
   - No repeated work (used across all batches)
   - Consistent with language matching strategy
 
----
+
 
 ### 10. Architecture Comparison
 
@@ -1628,7 +1627,7 @@ User prefers VIDEO_NEWS:
 | **Missing Handling** | Natural (0 similarity) | Inference from behavior | Inference from behavior |
 | **Matching Type** | Continuous [0, 1] | Binary (1.0 or 0.0) | Binary (1.0 or 0.0) |
 
----
+
 
 ### 11. User Preference Validation
 
@@ -1663,7 +1662,7 @@ else:
 - **8,689 users** (100%) successfully inferred
 - **Robust**: Even extreme edge cases are handled
 
----
+
 
 ## 5. Geographic Score (10% Weight)
 
@@ -1676,7 +1675,7 @@ else:
 - **Article Coverage**: 100% (all articles tagged via inference)
 - **Strategy**: Soft boosting (neutral for unknown, boost for local match)
 
----
+
 
 ### 1. Problem Statement
 
@@ -1705,7 +1704,7 @@ else:
 
 **Solution**: Infer article locations from reader geography
 
----
+
 
 ### 2. Source Data
 
@@ -1741,7 +1740,7 @@ else:
 - Result: ~10% city-specific, ~90% NATIONAL
 - Inference data: 2.94% of events (104,069/3,544,161) come from users with city data
 
----
+
 
 ### 3. Article Location Inference Process
 
@@ -1811,7 +1810,7 @@ for testing_article in testing_content:
         article_locations[article] = 'NATIONAL' # Safe default
 ```
 
----
+
 
 ### 4. Coverage Analysis
 
@@ -1851,7 +1850,7 @@ for testing_article in testing_content:
 - NATIONAL default **aligns with observed distribution** for 90% of articles (news has broad appeal)
 - Cold start articles safely default to NATIONAL
 
----
+
 
 ### 5. Geographic Scoring Logic
 
@@ -1903,7 +1902,7 @@ geo_score = 1.0 if match else 0.0
 - Treats NATIONAL articles appropriately (neutral, not penalty)
 - Still differentiates local vs cross-city (1.0 vs 0.5 = 2x)
 
----
+
 
 ### 6. Implementation
 
@@ -1947,7 +1946,7 @@ for i, user_city in enumerate(user_cities):
 - Batch lookup: O(1) per user-article pair
 - No repeated computation across batches
 
----
+
 
 ### 7. Example Calculations
 
@@ -1998,7 +1997,7 @@ content_score = 0.60*0.50 + 1.0*0.15 + 0.8*0.15 + 1.0*0.10 + 0.5*0.10
 - Local match (1.0) vs Unknown/NATIONAL (0.7) = **0.03 score difference** (3%)
 - With 10% weight, geography is **influential but not dominant**
 
----
+
 
 ### 8. Impact Assessment
 
@@ -2067,7 +2066,7 @@ Result: Viral story wins (popularity advantage too large)
 - Doesn't override strong category/popularity signals
 - Enhances local relevance when we have data
 
----
+
 
 ### 9. Key Decisions Rationale
 
@@ -2131,7 +2130,7 @@ Result: 'Mumbai' (false positive - not truly local)
   - `district` unusable (only 21 values)
   - `state` too broad (multiple cities with different news interests)
 
----
+
 
 ### 10. Architecture Comparison
 
@@ -2155,7 +2154,7 @@ Result: 'Mumbai' (false positive - not truly local)
 - **Only feature with explicit "unknown" handling** (0.7 neutral score)
 - **Soft boosting philosophy** (doesn't penalize majority with missing data)
 
----
+
 
 ### 11. Top Cities Analysis
 
@@ -2189,7 +2188,7 @@ Based on inference from these 710 users:
 - **~90% NATIONAL**: Articles with distributed readership
   - Example: "India GDP growth", "Cricket World Cup"
 
----
+
 
 ## 6. Collaborative Filtering Features
 
@@ -2199,7 +2198,7 @@ Based on inference from these 710 users:
 
 **Optimization**: Only compute for users with ≥10 interactions to reduce noise and computational cost
 
----
+
 
 ### 1. Overview
 
@@ -2210,7 +2209,7 @@ Based on inference from these 710 users:
 - **Engagement Weighting**: TimeSpent=1.0, Bookmarked=3.0, Shared=5.0
 - **Cold Start Handling**: 1,971 users (<10 interactions) fall back to content-based only
 
----
+
 
 ### 2. Problem Statement
 
@@ -2231,7 +2230,7 @@ Based on inference from these 710 users:
 - New users have no interaction history to cannot compute similarity
 - Testing articles have no historical interactions to collaborative filtering is not applicable for these items due to the absence of interaction history
 
----
+
 
 ### 3. Source Data
 
@@ -2250,7 +2249,7 @@ Based on inference from these 710 users:
 | News Bookmarked | ~10,000 | ~0.3% | 3.0 |
 | News Shared | ~4,000 | ~0.1% | 5.0 |
 
----
+
 
 ### 4. Feature Engineering Process
 
@@ -2324,7 +2323,7 @@ user_similarity_dict = {
 }
 ```
 
----
+
 
 ### 5. Coverage Analysis
 
@@ -2342,7 +2341,7 @@ user_similarity_dict = {
 - 23.0% users fall back to content-based (cold start scenario)
 - Power users (≥100 interactions) drive collaborative recommendations
 
----
+
 
 ### 6. Collaborative Filtering Logic
 
@@ -2376,7 +2375,7 @@ Collaborative score for Article X:
 = 0.85 × 3.0 + 0.72 × 5.0 = 2.55 + 3.60 = 6.15
 ```
 
----
+
 
 ### 7. Implementation Details
 
@@ -2401,7 +2400,7 @@ Collaborative score for Article X:
 - Dense matrix: 8,560 × 14,187 × 8 bytes = ~973 MB
 - Sparse CSR: ~20 MB (48x reduction)
 
----
+
 
 ### 8. Example Calculations
 
@@ -2435,7 +2434,7 @@ Result: Article A ranked higher (more neighbors read it)
 - Boost with popularity and language match
 - No collaborative signal available
 
----
+
 
 ### 9. Impact Assessment
 
@@ -2476,7 +2475,7 @@ Result: Article A ranked higher (more neighbors read it)
 - Collaborative filtering is not applicable for these items due to the absence of interaction history
 - Content-based performs reliably (uses metadata)
 
----
+
 
 ### 10. Key Decisions Rationale
 
@@ -2516,7 +2515,7 @@ Result: Article A ranked higher (more neighbors read it)
   - Improves recommendation quality (similar users who bookmarked have stronger signal)
   - Aligns with implicit feedback theory
 
----
+
 
 ### 11. Architecture Comparison
 
@@ -2530,7 +2529,6 @@ Result: Article A ranked higher (more neighbors read it)
 | **Usage** | Algorithm #2 (collaborative filtering) | Algorithm #2 (collaborative filtering) |
 | **Cold Start** | Requires user interaction history | Requires ≥10 interactions |
 
----
 
 ### 12. Memory and Performance
 
@@ -2549,7 +2547,7 @@ Result: Article A ranked higher (more neighbors read it)
 - **Batch recommendation** (3,000 users): ~30 seconds
 - **Bottleneck**: Neighbor rating aggregation
 
----
+
 
 ### 13. Top User Segments
 
@@ -2562,7 +2560,7 @@ Result: Article A ranked higher (more neighbors read it)
 
 **Key Insight**: All eligible users (≥10 interactions) have similar neighbor counts (~48-50), indicating robust similarity computation across segments.
 
----
+
 
 ## File Structure
 
