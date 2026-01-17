@@ -14,36 +14,36 @@ All data is connected through `hashId` (Article ID) as the primary key:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│ ARTICLE DATA │
+│ ARTICLE DATA                                            │
 ├─────────────────────────────────────────────────────────┤
-│ training_content.csv → 8,170 articles (8,168 unique) │
-│ testing_content.csv → 970 articles (970 unique) │
-│ article_features.csv → 9,140 articles (9,138 unique) │
-│ = train (8,168) + test (970) = 9,138 total │
+│ training_content.csv → 8,170 articles (8,168 unique)    │
+│ testing_content.csv → 970 articles (970 unique)         │
+│ article_features.csv → 9,140 articles (9,138 unique)    │
+│ = train (8,168) + test (970) = 9,138 total              │
 └─────────────────────────────────────────────────────────┘
                            ↓ (hashId)
 ┌─────────────────────────────────────────────────────────┐
-│ FEATURE MAPPINGS │
+│ FEATURE MAPPINGS                                        │
 ├─────────────────────────────────────────────────────────┤
-│ training_tfidf.pkl → 8,170 × 31 (articles × cats) │
-│ testing_tfidf.pkl → 970 × 31 (articles × cats) │
-│ user_category_tfidf.pkl → 8,689 × 31 (users × cats) │
-│ 8,689 unique users from events.csv with category data │
-│ (288 users excluded: only read articles without │
-│ 'categories' field - cannot build TF-IDF profiles) │
+│ training_tfidf.pkl → 8,170 × 31 (articles × cats)       │
+│ testing_tfidf.pkl → 970 × 31 (articles × cats)          │
+│ user_category_tfidf.pkl → 8,689 × 31 (users × cats)     │
+│ 8,689 unique users from events.csv with category data   │
+│ (288 users excluded: only read articles without         │
+│ 'categories' field - cannot build TF-IDF profiles)      │
 └─────────────────────────────────────────────────────────┘
                            ↑ (hashId)
 ┌─────────────────────────────────────────────────────────┐
-│ USER INTERACTIONS │
+│ USER INTERACTIONS                                       │
 ├─────────────────────────────────────────────────────────┤
-│ events.csv → 3.5M interactions │
-│ Unique articles: 14,622 (includes historical) │
-│ Unique users: 8,977 (incl. 288 no category user) │
-│ │
-│ Article Distribution: │
-│ - 8,155 articles in TRAINING (99.84% of train set) │
-│ - 0 articles in TESTING (0% - cold start scenario) │
-│ - 6,468 historical articles (removed/not in dataset) │
+│ events.csv → 3.5M interactions                          │
+│ Unique articles: 14,622 (includes historical)           │
+│ Unique users: 8,977 (incl. 288 no category user)        │
+│                                                         │
+│ Article Distribution:                                   │
+│ - 8,155 articles in TRAINING (99.84% of train set)      │
+│ - 0 articles in TESTING (0% - cold start scenario)      │
+│ - 6,468 historical articles (removed/not in dataset)    │
 └─────────────────────────────────────────────────────────┘
 ```
 

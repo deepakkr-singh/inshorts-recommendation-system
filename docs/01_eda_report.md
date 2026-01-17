@@ -177,35 +177,35 @@ The dataset consists of four main tables representing users, events, and content
 ### 2.2 Data Relationships
 
 ```
- ┌─────────────────┐
- │ DEVICES │
- │ (10,400 users) │
- │ │
- │ PK: deviceid │
- └────────┬────────┘
- │
- │ 1:Many
- │
- ▼
- ┌─────────────────────────┐
- │ EVENTS │
- │ (3,544,161 events) │
- │ │
- │ FK: deviceId │
- │ FK: hashId │
- └────────┬────────────────┘
- │
- │ Many:1
- │
- ┌─────────────────────────┐
- ▼ ▼
- ┌──────────────────┐ ┌──────────────────┐
- │ TRAINING_CONTENT │ │ TESTING_CONTENT │
- │ (8,170 articles)│ │ (970 articles) │
- │ │ │ │
- │ PK: hashid │ │ PK: hashid │
- │ (with history) │ │ (cold start) │
- └──────────────────┘ └──────────────────┘
+                ┌─────────────────┐
+                │ DEVICES         │
+                │ (10,400 users)  │
+                │                 │
+                │ PK: deviceid    │
+                └────────┬────────┘
+                         │
+                         │ 1:Many
+                         │
+                         ▼
+                ┌─────────────────────────┐
+                │ EVENTS                  │
+                │ (3,544,161 events)      │
+                │                         │
+                │ FK: deviceId            │
+                │ FK: hashId              │
+                └────────┬────────────────┘
+                         │
+                         │ Many:1
+                         │
+                ┌─────────────────────────┐
+                ▼                         ▼
+            ┌──────────────────┐ ┌──────────────────┐
+            │ TRAINING_CONTENT │ │ TESTING_CONTENT  │
+            │ (8,170 articles) │ │ (970 articles)   │
+            │                  │ │                  │
+            │ PK: hashid       │ │ PK: hashid       │
+            │ (with history) │ │ (cold start)       │
+            └──────────────────┘ └──────────────────┘
 ```
 
 ### 2.3 Data Characteristics

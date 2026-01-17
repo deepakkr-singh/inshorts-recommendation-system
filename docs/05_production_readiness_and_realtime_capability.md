@@ -770,4 +770,3 @@ class MonitoredRecommender:
  - Proxy Metrics: Precision@50, dwell time, session depth
  - Guardrail Metrics: Coverage, diversity (no filter bubbles)
 
----

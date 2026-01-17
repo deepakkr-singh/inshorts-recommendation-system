@@ -945,30 +945,6 @@ P_avg = 0.20×14.24% + 0.15×11.35% + 0.25×5.0% + 0.30×2.7% + 0.10×2.5%
  - ≥10: 10-20 neighbors to **2.54% precision** (weak signal)
  - **Minimum 40+ neighbors recommended** for quality CF
 
-#### Visualization: Precision vs Coverage Curve
-
-```
-Precision@50 (%)
- 14 | ● (≥800: 14.24%, 13.99%)
- |
- 12 |
- |
- 10 | ● (≥500: 11.35%, 19.50%)
- |
- 8 |
- |
- 6 |
- | ● (≥100: 5.06%, 49.63%)
- 4 |
- | ● (≥10: 2.54%, 52.77%)
- 2 | ● (≥1: 2.12%, 54.75%)
- |_____________________________________
- 0% 20% 40% 60% Coverage (%)
-
-Key Observation: Exponential precision decay as coverage increases
-Optimal Zone: ≥500 (balance of 11.35% precision, 19.50% coverage)
-```
-
 #### Recommendation Rationale
 
 **Why Tier-Based > Single Threshold:**
