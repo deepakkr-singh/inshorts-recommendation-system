@@ -2,7 +2,7 @@
 
 ## Table of Contents
 
-1. [Executive Summary](#1-summary)
+1. [Summary](#1-summary)
 2. [Performance Evaluation](#2-performance-evaluation)
 3. [A/B Testing Framework](#3-ab-testing-framework)
 4. [Comparative Analysis](#4-comparative-analysis)
