@@ -2,7 +2,6 @@
 
 **Inshorts News Recommendation System - Data Analysis**
 
----
 
 ## Table of Contents
 
@@ -22,7 +21,6 @@
 14. [SQL Proficiency Demonstrated](#sql-proficiency-demonstrated)
 15. [Conclusion](#conclusion)
 
----
 
 ## 1. Assignment Task
 
@@ -69,7 +67,7 @@ The developed algorithms must be capable of real-time recommendations and suitab
 - **Problem-Solving:** Demonstrates problem-solving skills by identifying and addressing data challenges.
 - **Communication Skills:** Clearly communicates findings and insights through well-structured reports and visualizations.
 
----
+
 
 ## 2. Data Schema and Description
 
@@ -237,7 +235,7 @@ The dataset consists of four main tables representing users, events, and content
 | Actual interactions | 3,544,161 | - |
 | Matrix sparsity | (131M - 3.5M) / 131M = 97.30% | How empty the matrix is |
 
----
+
 
 ## 3. Summary
 
@@ -278,7 +276,7 @@ UNION ALL
 SELECT 'testing_content', COUNT(*), COUNT(DISTINCT hashid) FROM testing_content;
 ```
 
----
+
 
 ## 5. Data Quality Assessment
 
@@ -315,7 +313,7 @@ SELECT 'testing_content', COUNT(*), COUNT(DISTINCT hashid) FROM testing_content;
 
 **Finding:** Category data is highly complete. Hashtags are sparse but not critical for initial recommendations.
 
----
+
 
 ## 6. User Analysis
 
@@ -370,7 +368,7 @@ GROUP BY user_segment;
  - Active users: Personalized based on history
  - Passive users: Popular content to increase engagement
 
----
+
 
 ## 7. Event Type Analysis
 
@@ -428,7 +426,7 @@ ORDER BY event_count DESC;
 - **High variance:** Some outliers with 11+ hours (likely app left open)
 - **Actionable threshold:** 95th percentile at 32.28s suggests strong engagement cutoff
 
----
+
 
 ## 8. Content Analysis
 
@@ -463,7 +461,7 @@ ORDER BY event_count DESC;
 2. **Diverse catalog:** 55+ unique categories provide variety
 3. **Long tail:** Many niche categories (education, travel, fashion) with <1%
 
----
+
 
 ## 9. Engagement Metrics
 
@@ -703,7 +701,7 @@ User `00198103-e45e-4b33-804b-84ff19562d62`:
 
 **Insight:** This user heavily consumes national news but shows deeper engagement (bookmarks/shares) with science content, suggesting recommendations should balance both.
 
----
+
 
 ## 10. Matrix Sparsity Analysis
 
@@ -741,7 +739,7 @@ FROM stats;
 - **Hybrid approach is strongly justified given the observed data characteristics:** Combine content-based + collaborative methods
 - **Cold start handling:** New articles (test set) need content-based scoring
 
----
+
 
 ## 11. Cold Start Analysis
 
@@ -770,7 +768,7 @@ FROM stats;
 
 **Challenge:** Testing set introduces new languages (Telugu, Kannada) with zero training representation, requiring language-agnostic features.
 
----
+
 
 ## 12. Key Insights Summary
 
@@ -802,7 +800,7 @@ FROM stats;
 3. **New Languages:** Test set has languages unseen in training
 4. **Scale:** 3.5M events require efficient algorithms
 
----
+
 
 ## 13. Data Quality Recommendations
 
@@ -827,7 +825,7 @@ FROM stats;
 3. **Temporal Features:** Time of day, day of week patterns
 4. **Social Signals:** Comments, forwards, reactions
 
----
+
 
 ## 14. Demonstration of SQL-Based Analytical Proficiency
 
@@ -852,7 +850,7 @@ FROM stats;
 4. **Limit Clauses:** Prevent excessive result sets
 5. **Efficient CTEs:** Reusable subqueries instead of repeated scans
 
----
+
 
 ## 15. Conclusion
 
@@ -867,4 +865,4 @@ The dataset quality is high for core signals (99.97% time spent completeness) bu
 4. **User segmentation** (power/active/passive) suggests personalized weighting strategies
 5. **Category affinity patterns** provide strong signals for content matching
 
----
+
