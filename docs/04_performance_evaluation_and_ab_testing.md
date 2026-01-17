@@ -1,11 +1,4 @@
 # Performance Evaluation & A/B Testing Analysis
-## Recommendation Systems Comparative Study
-
-**Date:** January 16, 2026
-**Systems Evaluated:** Content-Based Filtering vs. Collaborative Filtering
-**Dataset:** Inshorts News Recommendation (3.5M events, 8,977 users, 15,592 articles)
-
----
 
 ## Table of Contents
 
@@ -17,7 +10,7 @@
 6. [Recommendations](#recommendations)
 7. [Appendix](#appendix)
 
----
+
 
 ## 1. Executive Summary
 
@@ -56,7 +49,7 @@
 
 **Recommended Strategy:** Deploy tier-based hybrid system with adaptive CF thresholds (800/500/100/10) + content-based fallback for 6.86% overall precision (2.7× better than content-based baseline).
 
----
+
 
 ## 2. Performance Evaluation
 
@@ -107,7 +100,7 @@ Testing Set: 970 new articles (no historical data)
  - Preference for non-popular (novel) items
  - Formula: 1 - avg(normalized_popularity)
 
----
+
 
 ### 2.2 Content-Based Filtering Performance
 
@@ -178,7 +171,7 @@ Catalog Quality:
 - **High diversity**: Spreads recommendations across all categories
 - **No popularity bias**: All new articles have equal treatment (novelty = 1.0)
 
----
+
 
 ### 2.3 Collaborative Filtering Performance
 
@@ -250,7 +243,7 @@ Catalog Quality:
 - **Requires interaction data**: New articles have no user engagement history
 - **This behavior is expected given the algorithm design**: This is fundamental limitation of collaborative filtering
 
----
+
 
 ### 2.4 Performance Comparison Summary
 
@@ -265,7 +258,7 @@ Catalog Quality:
 | **Novelty** | 0.4155 | 0.4155 | 0.3395 |
 | **Cold-Start (Testing)** | 44.9% coverage | - | 0% coverage |
 
----
+
 
 ## 3. A/B Testing Framework
 
@@ -356,7 +349,7 @@ Formula: avg(# unique categories per user)
 Expected Collaborative (higher diversity score)
 ```
 
----
+
 
 ### 3.4 A/B Test Results (Simulated)
 
@@ -380,7 +373,7 @@ Based on offline metrics, we can **project** expected A/B test outcomes:
 - **Content-Based shows higher performance** for overall CTR, coverage, session depth
 - **Collaborative shows higher performance** for engaged users, dwell time, retention, diversity
 
----
+
 
 ### 3.5 Statistical Significance Testing
 
@@ -413,7 +406,7 @@ p_value < 0.001
 
 **Conclusion:** Content-Based significantly outperforms Collaborative on overall CTR.
 
----
+
 
 ## 4. Comparative Analysis
 
@@ -473,7 +466,7 @@ p_value < 0.001
  - Ignores collective interaction patterns
  - Misses trending articles until they appear in user's category preferences
 
----
+
 
 ### 4.2 Collaborative Filtering
 
@@ -544,7 +537,7 @@ p_value < 0.001
  - Requires recomputing similarity matrix to capture new patterns
  - Recommendations lag behind real-time trends
 
----
+
 
 ### 4.3 Head-to-Head Comparison
 
@@ -596,7 +589,7 @@ Collaborative: ~100ms per user (neighbor lookup + scoring)
 Content-Based (approximately an order of magnitude faster)
 ```
 
----
+
 
 ## 5. Statistical Significance Testing
 
@@ -647,7 +640,7 @@ Conclusion: Collaborative has significantly higher coverage
 Effect Size: φ = 0.34 (medium)
 ```
 
----
+
 
 ### 5.2 Confidence Intervals
 
@@ -677,7 +670,7 @@ Collaborative (Validation):
 Interpretation: Non-overlapping intervals → significant difference
 ```
 
----
+
 
 ## 6. Recommendations
 
@@ -755,7 +748,7 @@ Estimated Metrics (weighted average):
  Cold-Start: 44.9% for new articles (maintained)
 ```
 
----
+
 
 ### 6.2 Threshold Optimization for Collaborative Filtering
 
@@ -866,7 +859,7 @@ P_avg = 0.20×14.24% + 0.15×11.35% + 0.25×5.0% + 0.30×2.7% + 0.10×2.5%
 
 **Verdict:** **Implement tier-based system for 70% lift over single-threshold approach**
 
----
+
 
 ### 6.3 Model Enhancement Opportunities
 
@@ -902,7 +895,7 @@ P_avg = 0.20×14.24% + 0.15×11.35% + 0.25×5.0% + 0.30×2.7% + 0.10×2.5%
  - Propagate preferences through network
  - Expected lift: +3-4% precision (cutting-edge)
 
----
+
 
 ## 7. Appendix
 
@@ -992,7 +985,7 @@ P_avg = 0.20×14.24% + 0.15×11.35% + 0.25×5.0% + 0.30×2.7% + 0.10×2.5%
 | Content-Based | N/A | N/A | N/A | N/A | 0.4495 | 0.7712 | 1.0000 |
 | Collaborative | N/A | N/A | N/A | N/A | 0.0000 | 0.0000 | 0.0000 |
 
----
+
 
 ### 7.2 Algorithm Specifications
 
@@ -1023,7 +1016,7 @@ Thresholds: Adaptive (800/500/100/10 based on user engagement)
  ≥10: 2.54% precision (hybrid 30/70), 7,700 users
 ```
 
----
+
 
 ### 7.3 Data Characteristics
 
@@ -1070,7 +1063,7 @@ Non-zero Similarities: ~4.3 million (5.9%)
 Average Neighbors (similarity > 0.1): 48.9 per user
 ```
 
----
+
 
 ### 7.4 Reproducibility
 
@@ -1102,7 +1095,7 @@ Evaluation: /assignment/notebooks/03_evaluation.ipynb
 Results: /assignment/data/evaluation/comprehensive_evaluation.csv
 ```
 
----
+
 
 ### 7.5 Future Work
 
@@ -1123,7 +1116,7 @@ Results: /assignment/data/evaluation/comprehensive_evaluation.csv
 10. Multi-task learning (engagement, retention, diversity)
 11. Real-time model updates (online learning)
 
----
+
 
 ## Conclusion
 
