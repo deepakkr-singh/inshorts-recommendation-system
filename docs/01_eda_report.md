@@ -5,21 +5,21 @@
 
 ## Table of Contents
 
-1. [Assignment Task](#assignment-task)
-2. [Data Schema and Description](#data-schema-and-description)
-3. [Summary](#summary)
-4. [Dataset Overview](#dataset-overview)
-5. [Data Quality Assessment](#data-quality-assessment)
-6. [User Analysis](#user-analysis)
-7. [Event Type Analysis](#event-type-analysis)
-8. [Content Analysis](#content-analysis)
-9. [Engagement Metrics](#engagement-metrics)
-10. [Matrix Sparsity Analysis](#matrix-sparsity-analysis)
-11. [Cold Start Analysis](#cold-start-analysis)
-12. [Key Insights Summary](#key-insights-summary)
-13. [Data Quality Recommendations](#data-quality-recommendations)
-14. [SQL Proficiency Demonstrated](#sql-proficiency-demonstrated)
-15. [Conclusion](#conclusion)
+1. [Assignment Task](#1-assignment-task)
+2. [Data Schema and Description](#2-data-schema-and-description)
+3. [Summary](#3-summary)
+4. [Dataset Overview](#4-dataset-overview)
+5. [Data Quality Assessment](#5-data-quality-assessment)
+6. [User Analysis](#6-user-analysis)
+7. [Event Type Analysis](#7-event-type-analysis)
+8. [Content Analysis](#8-content-analysis)
+9. [Engagement Metrics](#9-engagement-metrics)
+10. [Matrix Sparsity Analysis](#10-matrix-sparsity-analysis)
+11. [Cold Start Analysis](#11-cold-start-analysis)
+12. [Key Insights Summary](#12-key-insights-summary)
+13. [Data Quality Recommendations](#13-data-quality-recommendations)
+14. [SQL Proficiency Demonstrated](#14-sql-proficiency-demonstrated)
+15. [Conclusion](#15-conclusion)
 
 
 ## 1. Assignment Task
